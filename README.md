@@ -1,4 +1,4 @@
-# NICE 2024 Solution for Topic 2
+# MHE: Multi-dimensional Hierarchical Ensemble Framework for Zero-shot Image Captioning Evaluation
 
 <p align="center"><img src="./figure/2.jpg" width="100%" alt="" /></p>
 
