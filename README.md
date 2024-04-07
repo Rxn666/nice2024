@@ -1,4 +1,8 @@
-# NICE 2024 Solution for Topic 2
+<div align="center">
+  <h1>MHE: Multi-dimensional Hierarchical Ensemble Framework for Zero-shot Caption Re-ranking Evaluation</h1>
+</div>
+
+<p align="center"><img src="./figure/2.jpg" width="100%" alt="" /></p>
 
 ## Result
 Our results in **Topic 2: Caption Re-ranking Evaluation**
