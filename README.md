@@ -1,5 +1,7 @@
 # NICE 2024 Solution for Topic 2
 
+<p align="center"><img src="./figure/2.jpg" width="100%" alt="" /></p>
+
 ## Result
 Our results in **Topic 2: Caption Re-ranking Evaluation**
 |CIDEr|SPICE|METEOR|ROUGE_L|Bleu_4|Bleu_3|Bleu_2|Bleu_1|
