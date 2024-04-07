@@ -21,11 +21,13 @@ We overwrite some code in ```pycocoevalcap``` package, please copy all code in `
 ## Running
 
 ### Quick Mode
-By using preprocessed output of retrieval phase and voting phase, you can easily **reproduce** the submission result within a minute. Please run:
+We've provided preprocessed output of retrieval phase and voting phase in ```checkpoints``` for your convenience, you can quickly **reproduce** the submission result. Please run:
 
 ```python main.py --mode quick```
 
 ### Complete Mode
+
+code is being organizing due to limited of time, we'll update code as soon as possible!
 
 #### Data preparation
 1. Prepare NICE datasets

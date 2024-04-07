@@ -145,7 +145,7 @@ def pad_candidate_caps():
     in_df.to_csv(out_path, index=False)
 
 def change_candidate_to_coco():
-    in_df = pd.read_csv('datasets/nice/candidate_captions_sorted_pad.csv')
+    in_df = pd.read_csv('datasets/nice/candidate_captions_sorted_clean_pad.csv')
     out_json = []
     for i, row in tqdm(in_df.iterrows(), total=20000):
         img_id = row['filename'].split('.')[0]
@@ -203,7 +203,7 @@ def get_candidates(model_name_lis, topk=None, weight_index=0, mask_num=0, candid
     # model_name_lis = ['git', 'beit3', 'ofa', 'blip2_large']
     # topk = 5
     # model_name_lis = ['git_beit3']
-    save_dir = f'datasets/nice/eval_res_final/w{weight_index}'
+    save_dir = f'datasets/nice/eval_res/w{weight_index}'
     # save_path = os.path.join(save_dir, candidate_idx_fn)
     save_path = candidate_idx_fn
     with open(mask_fn, 'r') as f:
@@ -704,7 +704,7 @@ def get_single_model_best(): # only CIDEr!!!!
     tmp.to_csv(f'datasets/nice/sub/{sub_name}.csv', index=False)
 
 def get_cap_with_best_score(model_name, sub_name, candidate_caps_fn, weight_index):
-    in_path = f'datasets/nice/eval_res/w{weight_index}/{model_name}.csv'
+    in_path = f'checkpoints/w{weight_index}/{model_name}.csv'
     df = pd.read_csv(in_path)
     candidate_df = pd.read_csv(candidate_caps_fn)
     score_np = df.to_numpy()
@@ -735,6 +735,17 @@ def post_processing(data, sub_name):
             new_cap = ref_df.loc[i, 'caption']
             in_df.loc[i, 'caption'] = new_cap
     in_df.to_csv(out_path, index=False)
+
+def check_two_file_same():
+    in_df1 = pd.read_csv('output/output_test.csv')
+    in_df2 = pd.read_csv('datasets_old/nice/sub/103_w1_top5_beit_4model_mask3_cider_among_new.csv')
+    count = 0
+    for i in range(20000):
+        cap1 = in_df1.loc[i, 'caption']
+        cap2 = in_df2.loc[i, 'caption']
+        if cap1 != cap2:
+            count += 1
+    print(count)
 
 def main_process():
     model_name_lis = ['git', 'beit3']

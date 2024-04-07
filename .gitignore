@@ -4,3 +4,7 @@ datasets_old
 output
 .vscode
 nice_ready_for_del
+datasets/nice/gt
+datasets/nice/candidates
+datasets/nice/eval_res
+datasets/nice/candidate_captions.json

@@ -25,7 +25,9 @@ import numpy as np
 
 import gc
 
-from utils import merge_res, get_cap_with_best_score, post_processing
+from utils import merge_res, get_cap_with_best_score, post_processing, split_candidates_coco, change_candidate_to_coco
+
+metric_lis = ["Bleu", "METEOR", "ROUGE_L", "SPICE", "CIDEr"]
 
 def get_candidates(model_name_lis, topk=None, weight_index=0, mask_num=0, candidate_idx_fn=None, mask_fn=None):
     save_dir = f'datasets/nice/eval_res/w{weight_index}'
@@ -83,38 +85,10 @@ def get_candidates(model_name_lis, topk=None, weight_index=0, mask_num=0, candid
     out_df.to_csv(save_path, index=False)
     return save_path
 
-def score_for_cider_new(split_name):
-    nice_gt_root = 'datasets/nice/gt'
-    candidate_dir = 'datasets/nice/candidates'
-    eval_res_all = []
-    dirname = os.path.join('datasets/nice', 'eval_res', model_name)
-    if not os.path.exists(dirname):
-        os.mkdir(dirname)
-
-    for i in tqdm(range(1, 65)):
-        candidate_res_file = os.path.join(candidate_dir, f'{i}.json')
-        coco_val = caption_eval(nice_gt_root, candidate_res_file, split_name)
-        eval_res_col = coco_val.evalImgs
-        eval_res_col = [item['CIDEr'] for item in eval_res_col]
-        eval_res_all.append(eval_res_col)
-    eval_res_all = np.array(eval_res_all)
-    eval_res_all_final = eval_res_all.transpose(1, 0)
-    col_names = [f'caption{i}' for i in range(1, 65)]
-    fn = 'CIDEr'
-    save_path = os.path.join('datasets/nice/eval_res', split_name, f'{fn}.csv')
-    df = pd.DataFrame(eval_res_all_final, columns=col_names)
-    df.to_csv(save_path, index=False)
-    
-    # with open(os.path.join('nice/output/BLIP2/eval/blip2_opt2.7b_fusion_visual_patch_k_2/20240225004', "score.txt"), "a") as f:
-    #     f.write(json.dumps(log_stats) + "\n")
-
-    coco_res = {k: v for k, v in coco_val.eval.items()}
-    coco_res["agg_metrics"] = coco_val.eval["CIDEr"]
-    return coco_res
-
 def transform_nice_for_cocoeval(ann_path):
     # annotation_file = f"{split_name}.json"
     # ann_path = os.path.join(nice_gt_root, annotation_file)
+    ann_path = ann_path[:-10] + '.json'
     with open(ann_path, "r") as f:
         anns = json.load(f)
     assert isinstance(anns, list)
@@ -138,7 +112,8 @@ def transform_nice_for_cocoeval(ann_path):
 def caption_eval(results_file, ann_file_coco, sep, scorers):
     if sep:
         # ann_file_coco = os.path.join(nice_gt_root, f"{split}_dict.json")
-        ann_file_coco_tran = ann_file_coco[:-5] + '_dict.json'
+        # ann_file_coco_tran = ann_file_coco[:-5] + '_dict.json'
+        ann_file_coco_tran = ann_file_coco
         if not os.path.isfile(ann_file_coco_tran):
             transform_nice_for_cocoeval(ann_file_coco)
     else:
@@ -175,6 +150,7 @@ def generate_template():
 def score(split_name, sep=False):
     nice_gt_root = 'datasets/nice/gt'
     candidate_dir = 'datasets/nice/candidates'
+
     # eval_res_all = generate_template()
     dirname = os.path.join('datasets/nice', 'eval_res', model_name)
     if not os.path.exists(dirname):
@@ -192,8 +168,8 @@ def score(split_name, sep=False):
             coco_val = caption_eval(candidate_res_file, ann_file_coco, sep, scorers)
             eval_res_col = coco_val.evalImgs
             if fn == 'Bleu':
-                fn_lis = ["Bleu_1", "Bleu_2", "Bleu_3", "Bleu_4"]
-                for i, fn_sub in enumerate(fn_lis):
+                metric_lis = ["Bleu_1", "Bleu_2", "Bleu_3", "Bleu_4"]
+                for i, fn_sub in enumerate(metric_lis):
                     eval_res_col_sub = [item[fn_sub] for item in eval_res_col]
                     eval_res_all[i].append(eval_res_col_sub)
             else:
@@ -220,39 +196,65 @@ def score(split_name, sep=False):
         df = pd.DataFrame(eval_res, columns=col_names)
         df.to_csv(save_path, index=False)
 
-
-def score_for_cider_new(split_name):
-    nice_gt_root = 'datasets/nice/gt'
-    candidate_dir = 'datasets/nice/candidates'
-    eval_res_all = []
-    dirname = os.path.join('datasets/nice', 'eval_res', model_name)
-    if not os.path.exists(dirname):
-        os.mkdir(dirname)
-    ann_path = f'datasets/nice/gt/{split_name}_dict.json'
-    fn = 'CIDEr'
-    scorer = get_scorers(fn)
-
-    for i in tqdm(range(1, 65)):
-        candidate_res_file = os.path.join(candidate_dir, f'{i}.json')
-        coco_val = caption_eval(candidate_res_file, ann_path, False, scorer)
-        eval_res_col = coco_val.evalImgs
-        eval_res_col = [item['CIDEr'] for item in eval_res_col]
-        eval_res_all.append(eval_res_col)
+def save_lis2csv(eval_res_all, col_num, split_name, fn):
     eval_res_all = np.array(eval_res_all)
     eval_res_all_final = eval_res_all.transpose(1, 0)
-    col_names = [f'caption{i}' for i in range(1, 65)]
+    col_names = [f'caption{i}' for i in range(1, col_num + 1)]
     if not os.path.exists('datasets/nice/eval_res'):
         os.mkdir('datasets/nice/eval_res')
     save_path = os.path.join('datasets/nice/eval_res', split_name, f'{fn}.csv')
     df = pd.DataFrame(eval_res_all_final, columns=col_names)
     df.to_csv(save_path, index=False)
-    
-    # with open(os.path.join('nice/output/BLIP2/eval/blip2_opt2.7b_fusion_visual_patch_k_2/20240225004', "score.txt"), "a") as f:
-    #     f.write(json.dumps(log_stats) + "\n")
 
-    coco_res = {k: v for k, v in coco_val.eval.items()}
-    coco_res["agg_metrics"] = coco_val.eval["CIDEr"]
-    return coco_res
+def score_for_cider_new(split_name, sep):
+    nice_gt_root = 'datasets/nice/gt'
+    candidate_dir = 'datasets/nice/candidates'
+    if not os.path.exists(candidate_dir):
+        os.mkdir(candidate_dir)
+        change_candidate_to_coco()
+        split_candidates_coco()
+    dirname = os.path.join('datasets/nice', 'eval_res', split_name)
+    if not os.path.exists(dirname):
+        os.mkdir(dirname)
+    ann_path = f'datasets/nice/gt/{split_name}_dict.json'
+    col_num = 64
+    for fn in metric_lis:
+        if fn == 'Bleu':
+            eval_res_all = [[] for i in range(4)]
+        else:
+            eval_res_all = []
+        scorer = get_scorers(fn)
+        for i in tqdm(range(1, col_num + 1)):
+            candidate_res_file = os.path.join(candidate_dir, f'{i}.json')
+            coco_val = caption_eval(candidate_res_file, ann_path, sep, scorer)
+            eval_res_col = coco_val.evalImgs
+            if fn == 'Bleu':
+                sub_metric_lis = ["Bleu_1", "Bleu_2", "Bleu_3", "Bleu_4"]
+                for i, fn_sub in enumerate(sub_metric_lis):
+                    eval_res_col_sub = [item[fn_sub] for item in eval_res_col]
+                    eval_res_all[i].append(eval_res_col_sub)
+            else:
+                if fn == 'SPICE':
+                    eval_res_col = [item[fn]['All']['f'] for item in eval_res_col]
+                    eval_res_all.append(eval_res_col)
+                else:
+                    eval_res_col = [item[fn] for item in eval_res_col]
+                    if fn == 'METEOR':
+                        eval_res_all.append(eval_res_col)
+                    elif fn == 'ROUGE_L':
+                        eval_res_all.append(eval_res_col)
+                    elif fn == 'CIDEr':
+                        eval_res_all.append(eval_res_col)
+                    else:
+                        raise NotImplementedError
+        if fn == 'Bleu':
+            sub_metric_lis = ["Bleu_1", "Bleu_2", "Bleu_3", "Bleu_4"]
+            for i, fn_sub in enumerate(sub_metric_lis):
+                save_lis2csv(eval_res_all[i], col_num, split_name, fn_sub)
+        else:
+            save_lis2csv(eval_res_all, col_num, split_name, fn)
+
+
 
 def convert_sub_to_gt(model_name):
     # in_df = pd.read_csv(f'datasets/nice/model_output/{model_name}.csv')
@@ -341,9 +343,8 @@ def score_for_intra_similarity(split_name, split, sep, split_num):
     dirname = os.path.join('datasets/nice', 'eval_res', split_name)
     if not os.path.exists(dirname):
         os.mkdir(dirname)
-    # metric_lis = ["Bleu_1", "Bleu_2", "Bleu_3", "Bleu_4", "METEOR", "ROUGE_L", "SPICE"]
+    metric_lis = ["Bleu", "METEOR", "ROUGE_L", "SPICE", "CIDEr"]
     # metric_lis = ["Bleu", "METEOR", "ROUGE_L", "SPICE"]
-    metric_lis = ["CIDEr"]
     if split:
         for i in tqdm(range(split_num)):
             print(f'start processing {i+1}')
@@ -356,8 +357,8 @@ def score_for_intra_similarity(split_name, split, sep, split_num):
                 coco_val = caption_eval(candidate_res_file, ann_file, sep, scorers)
                 eval_res_col = coco_val.evalImgs
                 if fn == 'Bleu':
-                    fn_lis = ["Bleu_1", "Bleu_2", "Bleu_3", "Bleu_4"]
-                    for fn_sub in fn_lis:
+                    metric_lis_sub = ["Bleu_1", "Bleu_2", "Bleu_3", "Bleu_4"]
+                    for fn_sub in metric_lis_sub:
                         eval_res_col_sub = [item[fn_sub] for item in eval_res_col]
                         print('saving...')
                         with open(os.path.join('datasets/nice/eval_res', split_name, f'{fn_sub}_{i+1}.json'), 'w') as f:
@@ -384,8 +385,8 @@ def score_for_intra_similarity(split_name, split, sep, split_num):
             coco_val = caption_eval(candidate_res_file, ann_file, sep, scorers)
             eval_res_col = coco_val.evalImgs
             if fn == 'Bleu':
-                fn_lis = ["Bleu_1", "Bleu_2", "Bleu_3", "Bleu_4"]
-                for fn_sub in fn_lis:
+                metric_lis = ["Bleu_1", "Bleu_2", "Bleu_3", "Bleu_4"]
+                for fn_sub in metric_lis:
                     eval_res_col_sub = [item[fn_sub] for item in eval_res_col]
                     print('saving...')
                     with open(os.path.join('datasets/nice/eval_res', split_name, f'{fn_sub}.json'), 'w') as f:
@@ -703,14 +704,14 @@ def merge_split_and_post_processing(model_name, topk, model_lis, add_model, spli
         num_cols = model_num*topk
     split_col = num_cols // split_num
     cols = []
-    fn_lis = ["Bleu_1", "Bleu_2", "Bleu_3", "Bleu_4", "METEOR", "ROUGE_L", "SPICE", "CIDEr"]
+    metric_lis = ["Bleu_1", "Bleu_2", "Bleu_3", "Bleu_4", "METEOR", "ROUGE_L", "SPICE", "CIDEr"]
     for model in model_lis:
         for i in range(topk):
             cols.append(model)
     if add_model:
         for model in model_lis:
             cols.append(model)
-    for fn in fn_lis:
+    for fn in metric_lis:
         data_all = []
         for i in range(split_num):
             with open(os.path.join('datasets/nice/eval_res', model_name, f'{fn}_{i+1}.json'), 'r') as f:
@@ -731,10 +732,13 @@ def merge_split_and_post_processing(model_name, topk, model_lis, add_model, spli
         df.to_csv(save_path, index=False)
 
 def get_single_model_similarity(model_lis, img_dir, weights, weight_index):
-    for model in model_lis:
+    for model in tqdm(model_lis):
+        if model != 'beit3':
+            continue
+        print(f'calculating similarity score between {model} generated captions and candidate captions...')
         convert_sub_to_gt_new(model, img_dir)
-        score_for_cider_new(model)
-        merge_res(model_name, weights, weight_index, stage=1)
+        score_for_cider_new(model, sep=True)
+        merge_res(model, weights, weight_index, stage=1)
 
 def intra_similarity_voting(topk, candidate_caps_fn, model_name, model_lis, sub_name, weights, weight_index, mode):
     split_num = 4
@@ -743,11 +747,26 @@ def intra_similarity_voting(topk, candidate_caps_fn, model_name, model_lis, sub_
     seperate = False
     if mode == 'all':
         # 1. get gt
-        get_gt_and_ref_new(topk, candidate_caps_fn, model_name, model_lis)
+        print('formatting for retrieved caption for similarity evaluation 1...')
+        gt_fn = f'datasets/nice/gt/{model_name}.json'
+        if os.path.exists(gt_fn):
+            pass
+        else:
+            get_gt_and_ref_new(topk, candidate_caps_fn, model_name, model_lis)
         # 2 split gt for saving memory
-        split_gt_and_ref(model_name, topk, model_lis, add_model, split_num=split_num, sep=False)
+        print('formatting for retrieved caption for similarity evaluation 2...')
+        split_gt_fn = f'datasets/nice/gt/{model_name}/1.json'
+        if os.path.exists(split_gt_fn):
+            pass
+        else:
+            split_gt_and_ref(model_name, topk, model_lis, add_model, split_count=split_num, sep=False)
         # 3. calculate similarity score
-        score_for_intra_similarity(model_name, split, sep=False, split_num=split_num)
+        print('start calculating intra-group similarity...')
+        score_fn = f'datasets/nice/eval_res/{model_name}/CIDEr_1.json'
+        if os.path.exists(score_fn):
+            pass
+        else:
+            score_for_intra_similarity(model_name, split, sep=False, split_num=split_num)
         # 4. merge res
         if split:
             merge_split_and_post_processing(model_name, topk, model_lis, add_model, split_num, sep=seperate)
