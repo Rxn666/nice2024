@@ -1,6 +1,5 @@
-<div align="center">
-  <h1>MHE: Multi-dimensional Hierarchical Ensemble Framework for Zero-shot Image Captioning Evaluation</h1>
-</div>
+
+<h1 style="text-align:center;">MHE: Multi-dimensional Hierarchical Ensemble Framework for Zero-shot Image Captioning Evaluation</h1>
 
 <p align="center"><img src="./figure/2.jpg" width="100%" alt="" /></p>
 
