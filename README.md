@@ -4,6 +4,7 @@
 
 <p align="center"><img src="./figure/2.jpg" width="100%" alt="" /></p>
 
+
 ## Result
 Our results in **Topic 2: Caption Re-ranking Evaluation**
 |CIDEr|SPICE|METEOR|ROUGE_L|Bleu_4|Bleu_3|Bleu_2|Bleu_1|
@@ -39,3 +40,6 @@ We provide preprocessed high-frequency word list in ```datasets/nice/candidate_c
 - [ ] organize code
 
 code is being organizing due to limited of time, we'll update codes as soon as possible!
+
+<p align="center"><img src="./figure/4.jpg" width="100%" alt="" /></p>
+
